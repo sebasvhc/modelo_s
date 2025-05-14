@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registrar Alumno</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .form-container {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .form-title {
+            color: #0d6efd;
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+        }
+        .photo-preview {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px dashed #dee2e6;
+            display: none;
+            margin-bottom: 15px;
+        }
+        .form-control, .form-select {
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 500;
+        }
+        .btn-secondary {
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5 mb-5">
+        <div class="form-container">
+            <h1 class="form-title mb-4">Registrar Nuevo Alumno</h1>
+            
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                <strong>Errores:</strong>
+                {{ form.errors }}
+            </div>
+            {% endif %}
+
+            <form method="post" class="needs-validation" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="row">
+                    <!-- Columna izquierda -->
+                    <div class="col-md-6">
+                        <!-- Sección de foto -->
+                        <div class="mb-4 text-center">
+                            <img id="photoPreview" class="photo-preview" alt="Vista previa de la foto">
+                            <div class="mb-3">
+                                <label for="id_foto" class="form-label">Foto del Alumno</label>
+                                <input type="file" class="form-control" name="foto" id="id_foto" accept="image/*">
+                                <div class="form-text">Formatos aceptados: JPG, PNG (Tamaño máximo: 2MB)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_nombre" class="form-label">Nombre(s)</label>
+                            <input type="text" class="form-control" name="nombre" id="id_nombre" 
+                                   value="{{ form.nombre.value|default_if_none:'' }}" required>
+                            <div class="invalid-feedback">Por favor ingresa el nombre.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_apellido" class="form-label">Apellidos</label>
+                            <input type="text" class="form-control" name="apellido" id="id_apellido" 
+                                   value="{{ form.apellido.value|default_if_none:'' }}" required>
+                            <div class="invalid-feedback">Por favor ingresa los apellidos.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Columna derecha -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="id_edad" class="form-label">Edad</label>
+                            <input type="number" class="form-control" name="edad" id="id_edad" 
+                                   value="{{ form.edad.value|default_if_none:'' }}" min="15" max="100" required>
+                            <div class="invalid-feedback">La edad debe estar entre 15 y 100 años.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_email" class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" id="id_email" 
+                                   value="{{ form.email.value|default_if_none:'' }}" required>
+                            <div class="form-text">Ejemplo: usuario@dominio.com</div>
+                            <div class="invalid-feedback">Por favor ingresa un email válido.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_telefono" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" name="telefono" id="id_telefono" 
+                                   value="{{ form.telefono.value|default_if_none:'' }}" required>
+                            <div class="invalid-feedback">Por favor ingresa un teléfono válido.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_direccion" class="form-label">Dirección</label>
+                            <textarea class="form-control" name="direccion" id="id_direccion" 
+                                      rows="3">{{ form.direccion.value|default_if_none:'' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a href="{% url 'formulario:lista_alumnos' %}" class="btn btn-secondary me-md-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Guardar Alumno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Vista previa de la foto
+        document.getElementById('id_foto').addEventListener('change', function(e) {
+            const preview = document.getElementById('photoPreview');
+            const file = e.target.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
+        // Validación de formulario
+        (function () {
+            'use strict'
+            
+            const forms = document.querySelectorAll('.needs-validation')
+            
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+    </script>
+</body>
+</html>

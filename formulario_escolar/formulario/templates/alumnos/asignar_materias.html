@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Asignar Materias a {{ alumno.nombre }} {{ alumno.apellido }}</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Guardar Materias</button>
+    <a href="{% url 'detalle_alumno' alumno.id %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}
