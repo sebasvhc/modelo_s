@@ -41,6 +41,13 @@ class Inscripcion(models.Model):
     def __str__(self):
         return f"{self.alumno} en {self.materia} ({self.ciclo_escolar})"
 
+    @property
+    def promedio(self):
+        notas = self.notas.all()
+        if notas.exists():
+            return sum(nota.valor for nota in notas) / notas.count()
+        return 0
+
 class Nota(models.Model):
     TIPOS_EVALUACION = [
         ('P1', 'Parcial 1'),

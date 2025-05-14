@@ -127,3 +127,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Al final del archivo
 MEDIA_URL = '/media/'  # URL pública para acceder a las imágenes
 MEDIA_ROOT = BASE_DIR / 'media'  # Ruta donde se guardan físicamente
+
+
+#rutas bloqueadas
+LOGIN_REDIRECT_URL = 'formulario:lista_alumnos'  # Ruta tras login exitoso
+LOGOUT_REDIRECT_URL = 'login'  # Ruta tras logout
+
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 4,  # Cambia temporalmente a 4 para pruebas
+        }
+    },
+]
+
+LOGOUT_REDIRECT_URL = 'login'  # Redirige a la página de login después de logout

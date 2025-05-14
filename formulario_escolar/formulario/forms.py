@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from .models import Alumno, Materia, Inscripcion, Nota
 from django.contrib.auth.models import User
 import re
+from django.contrib.auth.forms import UserCreationForm
 
 class AlumnoForm(forms.ModelForm):
     confirmar_email = forms.EmailField(
@@ -99,22 +100,18 @@ class InscripcionForm(forms.ModelForm):
 class NotaForm(forms.ModelForm):
     class Meta:
         model = Nota
-        fields = ['inscripcion', 'tipo', 'valor', 'comentario']
+        fields = ['tipo', 'valor', 'comentario']
         widgets = {
-            'inscripcion': forms.Select(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
-            'valor': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': '0',
-                'max': '100',
-                'step': '0.01'
-            }),
-            'comentario': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 2,
-                'placeholder': 'Observaciones sobre la evaluación'
-            }),
+            'valor': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+    def clean_valor(self):
+        valor = self.cleaned_data['valor']
+        if valor < 0 or valor > 100:
+            raise forms.ValidationError("La nota debe estar entre 0 y 100.")
+        return valor
 
 class AsignarMateriasForm(forms.Form):
     ciclo_escolar = forms.ChoiceField(
@@ -138,3 +135,17 @@ class AsignarMateriasForm(forms.Form):
                 required=True,
                 label="Seleccione materias"
             )
+
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ("username", "email", "password1", "password2")
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"]
+        if commit:
+            user.save()
+        return user

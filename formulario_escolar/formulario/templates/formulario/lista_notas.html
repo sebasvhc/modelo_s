@@ -1,84 +1,52 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Notas de {{ alumno.nombre }} {{ alumno.apellido }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .nota-card {
-            transition: transform 0.2s;
-        }
-        .nota-card:hover {
-            transform: translateY(-3px);
-        }
-    </style>
-</head>
-<body>
-    <div class="container mt-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Notas de {{ alumno.nombre }} {{ alumno.apellido }}</h1>
-            <a href="{% url 'formulario:lista_alumnos' %}" class="btn btn-secondary">Volver a Alumnos</a>
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Notas de {{ alumno.nombre }} {{ alumno.apellido }}</h2>
+    {% for inscripcion in inscripciones %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>{{ inscripcion.materia.nombre }} ({{ inscripcion.ciclo_escolar }})</h5>
+            <a href="{% url 'formulario:registrar_nota' inscripcion.id %}" class="btn btn-sm btn-success">
+                Agregar Nota
+            </a>
         </div>
-        
-        {% if inscripciones %}
-        <div class="accordion" id="materiasAccordion">
-            {% for inscripcion in inscripciones %}
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading{{ inscripcion.id }}">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" 
-                            data-bs-target="#collapse{{ inscripcion.id }}" aria-expanded="true" 
-                            aria-controls="collapse{{ inscripcion.id }}">
-                        {{ inscripcion.materia.nombre }} ({{ inscripcion.ciclo_escolar }})
-                    </button>
-                </h2>
-                <div id="collapse{{ inscripcion.id }}" class="accordion-collapse collapse show" 
-                     aria-labelledby="heading{{ inscripcion.id }}" data-bs-parent="#materiasAccordion">
-                    <div class="accordion-body">
-                        <div class="d-flex justify-content-between mb-3">
-                            <h5>Registro de Notas</h5>
-                            <a href="{% url 'formulario:registrar_nota' inscripcion.id %}" 
-                               class="btn btn-sm btn-primary">Agregar Nota</a>
-                        </div>
-                        
-                        {% if inscripcion.notas.all %}
-                        <div class="row row-cols-1 row-cols-md-3 g-4">
-                            {% for nota in inscripcion.notas.all %}
-                            <div class="col">
-                                <div class="card nota-card h-100 {% if nota.valor < 60 %}border-danger{% elif nota.valor < 80 %}border-warning{% else %}border-success{% endif %}">
-                                    <div class="card-header">
-                                        {{ nota.get_tipo_display }}
-                                    </div>
-                                    <div class="card-body">
-                                        <h2 class="card-title text-center {% if nota.valor < 60 %}text-danger{% elif nota.valor < 80 %}text-warning{% else %}text-success{% endif %}">
-                                            {{ nota.valor }}
-                                        </h2>
-                                        <p class="card-text text-center">
-                                            <small class="text-muted">{{ nota.fecha_registro|date:"d/m/Y" }}</small>
-                                        </p>
-                                        {% if nota.comentario %}
-                                        <p class="card-text">{{ nota.comentario }}</p>
-                                        {% endif %}
-                                    </div>
-                                    <div class="card-footer bg-transparent">
-                                        <small class="text-muted">Registrada el {{ nota.fecha_registro|date:"d/m/Y H:i" }}</small>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% else %}
-                        <div class="alert alert-info">No hay notas registradas para esta materia</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Nota</th>
+                        <th>Fecha</th>
+                        <th>Comentario</th>
+                        <th>Acciones</th> <!-- Nueva columna -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nota in inscripcion.notas.all %}
+                    <tr>
+                        <td>{{ nota.get_tipo_display }}</td>
+                        <td>{{ nota.valor }}</td>
+                        <td>{{ nota.fecha_registro|date:"d/m/Y" }}</td>
+                        <td>{{ nota.comentario|default:"-" }}</td>
+                        <td>
+                            <form method="post" action="{% url 'formulario:eliminar_nota' nota.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar la nota de {{ nota.get_tipo_display }}?')">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">No hay notas registradas</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        {% else %}
-        <div class="alert alert-warning">El alumno no está inscrito en ninguna materia</div>
-        {% endif %}
     </div>
-    
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    {% endfor %}
+</div>
+{% endblock %}

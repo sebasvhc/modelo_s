@@ -18,4 +18,5 @@ urlpatterns = [
     # URLs para notas
     path('inscripcion/<int:inscripcion_id>/registrar-nota/', views.registrar_nota, name='registrar_nota'),
     path('alumno/<int:alumno_id>/notas/', views.lista_notas_alumno, name='lista_notas_alumno'),
+    path('nota/<int:nota_id>/eliminar/', views.eliminar_nota, name='eliminar_nota'),
 ]
