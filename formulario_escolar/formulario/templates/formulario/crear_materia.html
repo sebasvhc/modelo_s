@@ -1,60 +1,111 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block content %}
 <div class="container mt-4">
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h3>Crear Nueva Materia</h3>
         </div>
-        
         <div class="card-body">
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <div class="form-group">
                             {{ form.nombre.label_tag }}
                             {{ form.nombre }}
                             {% if form.nombre.errors %}
-                                <div class="text-danger">{{ form.nombre.errors }}</div>
+                            <div class="text-danger">{{ form.nombre.errors }}</div>
                             {% endif %}
                         </div>
                     </div>
-                    
+                    <!-- Modifica solo la parte del profesor -->
                     <div class="col-md-6">
                         <div class="form-group">
-                            {{ form.profesor.label_tag }}
-                            {{ form.profesor }}
-                            {% if form.profesor.errors %}
-                                <div class="text-danger">{{ form.profesor.errors }}</div>
-                            {% endif %}
+                            <label for="id_profesor">Profesor:</label>
+                            <select name="profesor" id="id_profesor" class="form-control">
+                                <option value="">Seleccione un profesor</option>
+                                {% for profesor in profesores %}
+                                <option value="{{ profesor.id }}">{{ profesor.user.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">
+                                <a href="{% url 'formulario:registrar_profesor' %}?next={{ request.path }}">
+                                    ¿No encuentra el profesor? Regístrelo aquí
+                                </a>
+                            </small>
                         </div>
                     </div>
-                </div>
-                
-                <div class="form-group mb-3">
-                    {{ form.descripcion.label_tag }}
-                    {{ form.descripcion }}
-                    {% if form.descripcion.errors %}
+                    <div class="form-group mb-3">
+                        {{ form.descripcion.label_tag }}
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
                         <div class="text-danger">{{ form.descripcion.errors }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    <a href="{% url 'formulario:lista_materias' %}" class="btn btn-secondary me-md-2">Cancelar</a>
-                    <button type="submit" class="btn btn-primary">Guardar Materia</button>
-                </div>
+                        {% endif %}
+                    </div>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'formulario:lista_materias' %}" class="btn btn-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Guardar Materia</button>
+                    </div>
             </form>
         </div>
     </div>
 </div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const nombreInput = document.getElementById('id_nombre');
-    
+
+    nombreInput.addEventListener('change', function() {
+        const nombre = this.value.toLowerCase();
+        if (nombre.includes('proyecto')) {
+            alert('Nota: Esta materia será configurada con nota mínima aprobatoria de 16 puntos');
+        }
+    });
+});
+</script>
+{% endblock %}
+{% block extra_js %}
+<!-- Incluye jQuery y Select2 para autocompletado -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Configuración del autocompletado con selección múltiple deshabilitada
+    $('#profesor-buscar').select2({
+        tags: false, // Deshabilitar creación de nuevos tags
+        placeholder: "Buscar profesor existente",
+        allowClear: true,
+        minimumInputLength: 2,
+        ajax: {
+            url: '{% url "formulario:buscar_profesor" %}',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    q: params.term
+                };
+            },
+            processResults: function(data) {
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        }
+    });
+
+    // Permitir escribir libremente aunque no esté en las opciones
+    $('#profesor-buscar').on('select2:closing', function(e) {
+        var input = $(this);
+        var value = input.val();
+        if (value && !input.select2('data').length) {
+            input.select2('data', { id: value, text: value });
+        }
+    });
+
+    // Alerta para materias de proyecto
+    const nombreInput = document.getElementById('id_nombre');
     nombreInput.addEventListener('change', function() {
         const nombre = this.value.toLowerCase();
         if (nombre.includes('proyecto')) {

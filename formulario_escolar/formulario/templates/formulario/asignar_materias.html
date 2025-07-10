@@ -103,3 +103,30 @@
     </div>
 </div>
 {% endblock %}
+
+<!-- Mantén todo el contenido existente y solo modifica el bloque extra_js -->
+{% block extra_js %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Configura Select2 para el período
+    $('#id_periodo').select2({
+        placeholder: "Seleccione un período",
+        allowClear: true,
+        width: '100%'
+    });
+    
+    // Ordenar períodos por año descendente
+    var options = $('#id_periodo option');
+    options.sort(function(a, b) {
+        var yearA = parseInt($(a).text().split('-')[1]);
+        var yearB = parseInt($(b).text().split('-')[1]);
+        return yearB - yearA;
+    });
+    $('#id_periodo').empty().append(options);
+});
+</script>
+{% endblock %}

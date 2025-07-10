@@ -18,6 +18,11 @@ urlpatterns = [
     # Profesores
     path('profesores/', views.lista_profesores, name='lista_profesores'),
     path('profesores/registrar/', views.registrar_profesor, name='registrar_profesor'),
+    path('profesores/<int:id>/editar/', views.editar_profesor, name='editar_profesor'),
+    path('profesores/<int:id>/eliminar/', views.eliminar_profesor, name='eliminar_profesor'),
+
+     # Búsqueda de profesores
+    path('buscar-profesor/', views.buscar_profesor, name='buscar_profesor'),
     
     # Períodos
     path('periodos/', views.lista_periodos, name='lista_periodos'),

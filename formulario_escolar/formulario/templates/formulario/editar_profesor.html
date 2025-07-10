@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>Editar Profesor</h3>
+        </div>
+        
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.first_name.label_tag }}
+                            {{ form.first_name }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.last_name.label_tag }}
+                            {{ form.last_name }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.cedula.label_tag }}
+                            {{ form.cedula }}
+                            <small class="text-muted">La cédula no puede modificarse</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.email.label_tag }}
+                            {{ form.email }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.telefono.label_tag }}
+                            {{ form.telefono }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.direccion.label_tag }}
+                    {{ form.direccion }}
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'formulario:lista_profesores' %}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

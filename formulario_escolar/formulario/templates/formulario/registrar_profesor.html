@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>Registrar Nuevo Profesor</h3>
+        </div>
+        
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.first_name.label_tag }}
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="text-danger">{{ form.first_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.last_name.label_tag }}
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="text-danger">{{ form.last_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.cedula.label_tag }}
+                            {{ form.cedula }}
+                            {% if form.cedula.errors %}
+                                <div class="text-danger">{{ form.cedula.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.email.label_tag }}
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger">{{ form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.telefono.label_tag }}
+                            {{ form.telefono }}
+                            {% if form.telefono.errors %}
+                                <div class="text-danger">{{ form.telefono.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.password.label_tag }}
+                            {{ form.password }}
+                            {% if form.password.errors %}
+                                <div class="text-danger">{{ form.password.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.direccion.label_tag }}
+                    {{ form.direccion }}
+                    {% if form.direccion.errors %}
+                        <div class="text-danger">{{ form.direccion.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'formulario:lista_profesores' %}" class="btn btn-secondary me-md-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Registrar Profesor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

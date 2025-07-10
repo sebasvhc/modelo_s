@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User  
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class Profesor(models.Model):
@@ -14,21 +16,19 @@ class Profesor(models.Model):
         return f"{self.user.first_name} {self.user.last_name}"
 
 class Periodo(models.Model):
-    nombre = models.CharField(max_length=50, choices=[
+    PERIODO_CHOICES = [
         ('I', 'Periodo I'),
         ('II', 'Periodo II'),
-        ('III', 'Periodo III'),
-        ('IV', 'Periodo IV'),
-    ])
+    ]
+    
+    nombre = models.CharField(max_length=2, choices=PERIODO_CHOICES)
     año = models.PositiveIntegerField()
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
     
     class Meta:
         unique_together = ('nombre', 'año')
-        ordering = ['año', 'nombre']
-        verbose_name = 'Período'
-        verbose_name_plural = 'Períodos'
+        ordering = ['-año', 'nombre']
     
     def __str__(self):
         return f"{self.get_nombre_display()} - {self.año}"
@@ -147,3 +147,4 @@ def asignar_periodo_default(apps, schema_editor):
         }
     )
     
+

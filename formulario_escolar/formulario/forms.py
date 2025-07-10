@@ -6,33 +6,44 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 
 class ProfesorForm(forms.ModelForm):
-    first_name = forms.CharField(label="Nombre", max_length=100)
-    last_name = forms.CharField(label="Apellido", max_length=100)
-    email = forms.EmailField()
-    password = forms.CharField(widget=forms.PasswordInput)
+    first_name = forms.CharField(label="Nombre", required=True)
+    last_name = forms.CharField(label="Apellido", required=True)
+    email = forms.EmailField(required=True)
     
     class Meta:
         model = Profesor
         fields = ['cedula', 'telefono', 'direccion']
         widgets = {
-            'cedula': forms.TextInput(attrs={'placeholder': 'Ej: V-12345678'}),
-            'telefono': forms.TextInput(attrs={'placeholder': 'Ej: 0412-1234567'}),
+            'cedula': forms.TextInput(attrs={'placeholder': 'V-12345678'}),
+            'telefono': forms.TextInput(attrs={'placeholder': '0412-1234567'}),
             'direccion': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Dirección completa...'}),
         }
         
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.user:
+            self.fields['first_name'].initial = self.instance.user.first_name
+            self.fields['last_name'].initial = self.instance.user.last_name
+            self.fields['email'].initial = self.instance.user.email
+    
     def save(self, commit=True):
-        user = User.objects.create_user(
-            username=self.cleaned_data['cedula'],
-            email=self.cleaned_data['email'],
-            password=self.cleaned_data['password'],
-            first_name=self.cleaned_data['first_name'],
-            last_name=self.cleaned_data['last_name']
-        )
-        profesor = super().save(commit=False)
-        profesor.user = user
-        if commit:
-            profesor.save()
-        return profesor
+        if not self.instance.pk:  # Creando nuevo profesor
+            username = self.cleaned_data['cedula']
+            user = User.objects.create_user(
+                username=username,
+                email=self.cleaned_data['email'],
+                password=username,  # La cédula como contraseña inicial
+                first_name=self.cleaned_data['first_name'],
+                last_name=self.cleaned_data['last_name']
+            )
+            self.instance.user = user
+        else:  # Actualizando profesor existente
+            self.instance.user.first_name = self.cleaned_data['first_name']
+            self.instance.user.last_name = self.cleaned_data['last_name']
+            self.instance.user.email = self.cleaned_data['email']
+            self.instance.user.save()
+        
+        return super().save(commit)
 
 class PeriodoForm(forms.ModelForm):
     class Meta:
@@ -49,9 +60,19 @@ class PeriodoForm(forms.ModelForm):
         }
 
 class MateriaForm(forms.ModelForm):
+    profesor_nombre = forms.CharField(
+        required=False,
+        label="Nombre del Profesor",
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Buscar profesor existente o escribir nuevo',
+            'id': 'profesor-buscar'
+        })
+    )
+
     class Meta:
         model = Materia
-        fields = ['nombre', 'descripcion', 'profesor']
+        fields = ['nombre', 'descripcion']
         widgets = {
             'nombre': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -62,8 +83,55 @@ class MateriaForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Descripción opcional...'
             }),
-            'profesor': forms.Select(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.profesor:
+            self.fields['profesor_nombre'].initial = self.instance.profesor.user.get_full_name()
+
+    def save(self, commit=True):
+        materia = super().save(commit=False)
+        profesor_nombre = self.cleaned_data.get('profesor_nombre')
+        
+        if profesor_nombre:
+            # Buscar profesor existente sin crear uno nuevo
+            nombres = profesor_nombre.split()
+            first_name = nombres[0] if nombres else ''
+            last_name = ' '.join(nombres[1:]) if len(nombres) > 1 else ''
+            
+            # Buscar cualquier profesor que coincida con el nombre
+            profesores = Profesor.objects.filter(
+                user__first_name__iexact=first_name,
+                user__last_name__iexact=last_name
+            )
+            
+            if profesores.exists():
+                # Usar el primer profesor encontrado
+                materia.profesor = profesores.first()
+            else:
+                # Crear nuevo profesor solo si no existe
+                username = f"{first_name.lower()}_{last_name.lower()}" if last_name else first_name.lower()
+                
+                user = User.objects.create(
+                    username=username,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=f"{username}@escuela.com",
+                    password='passwordtemporal'  # Debe cambiarse después
+                )
+                
+                materia.profesor = Profesor.objects.create(
+                    user=user,
+                    cedula=f"V-{user.id}0000",  # Cédula temporal
+                    telefono='00000000000',
+                    direccion='Por definir'
+                )
+        
+        if commit:
+            materia.save()
+        
+        return materia
 
 class InscripcionForm(forms.ModelForm):
     class Meta:
@@ -102,7 +170,7 @@ class NotaForm(forms.ModelForm):
 
 class AsignarMateriasForm(forms.Form):
     periodo = forms.ModelChoiceField(
-        queryset=Periodo.objects.all().order_by('-año', 'nombre'),
+        queryset=Periodo.objects.filter(nombre__in=['I', 'II']).order_by('-año'),
         widget=forms.Select(attrs={'class': 'form-control'}),
         label="Período Académico"
     )

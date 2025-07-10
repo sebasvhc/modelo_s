@@ -1,77 +1,121 @@
 {% extends 'base.html' %}
-
 {% block title %}Lista de Alumnos{% endblock %}
-
 {% block content %}
-<div class="mb-3">
-    <h1>Lista de Alumnos</h1>
-    <div class="mb-3">
-        <a href="{% url 'formulario:registrar_alumno' %}" class="btn btn-success">➕ Nuevo Alumno</a>
-        <a href="{% url 'formulario:crear_materia' %}" class="btn btn-primary">➕ Nueva Materia</a>
+<div class="container-fluid mt-3">
+    <!-- Header con título y botones principales -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Lista de Alumnos</h1>
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-plus-lg"></i> Nuevo Registro
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                <li><a class="dropdown-item" href="{% url 'formulario:registrar_alumno' %}">
+                        <i class="bi bi-person-plus"></i> Alumno
+                    </a></li>
+                <li><a class="dropdown-item" href="{% url 'formulario:registrar_profesor' %}">
+                        <i class="bi bi-person-video3"></i> Profesor
+                    </a></li>
+                <li><a class="dropdown-item" href="{% url 'formulario:crear_materia' %}">
+                        <i class="bi bi-journal-bookmark"></i> Materia
+                    </a></li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li><a class="dropdown-item" href="{% url 'formulario:lista_periodos' %}">
+                        <i class="bi bi-calendar-range"></i> Períodos
+                    </a></li>
+            </ul>
+        </div>
     </div>
-    
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Foto</th>
-                <th>Nombre</th>
-                <th>Apellido</th>
-                <th>Edad</th>
-                <th>Dirección</th>
-                <th>Email</th>
-                <th>Teléfono</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for alumno in alumnos %}
-            <tr>
-                <td>
-                    {% if alumno.foto %}
-                        <img src="{{ alumno.foto.url }}" alt="Foto de {{ alumno.nombre }}" class="foto-alumno">
-                    {% else %}
-                        <div class="foto-alumno bg-secondary text-white d-flex align-items-center justify-content-center">
-                            Sin foto
+    <!-- Barra de acciones secundarias -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a href="{% url 'formulario:lista_profesores' %}" class="btn btn-outline-info">
+            <i class="bi bi-people"></i> Ver Profesores
+        </a>
+        <a href="{% url 'formulario:lista_materias' %}" class="btn btn-outline-primary">
+            <i class="bi bi-journal-text"></i> Ver Materias
+        </a>
+    </div>
+    <!-- Tabla de alumnos -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 60px;">Foto</th>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                    <th>Edad</th>
+                    <th>Email</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alumno in alumnos %}
+                <tr>
+                    <td>
+                        {% if alumno.foto %}
+                        <img src="{{ alumno.foto.url }}" alt="Foto de {{ alumno.nombre }}" class="rounded-circle" width="50" height="50">
+                        {% else %}
+                        <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bi bi-person"></i>
                         </div>
-                    {% endif %}
-                </td>
-                <td>{{ alumno.nombre }}</td>
-                <td>{{ alumno.apellido }}</td>
-                <td>{{ alumno.edad }}</td>
-                <td>{{ alumno.direccion }}</td>
-                <td>{{ alumno.email }}</td>
-                <td>{{ alumno.telefono }}</td>
-                <td>
-                    <div class="action-buttons">
-                        <a href="{% url 'formulario:editar_alumno' alumno.id %}" class="btn btn-warning btn-sm">Editar</a>
-                        <a href="{% url 'formulario:eliminar_alumno' alumno.id %}" class="btn btn-danger btn-sm">Eliminar</a>
-                        <a href="{% url 'formulario:lista_notas_alumno' alumno.id %}" class="btn btn-info btn-sm">Notas</a>
-                        <a href="{% url 'formulario:asignar_materias_alumno' alumno.id %}" class="btn btn-secondary btn-sm">Materias</a>
-                    </div>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="8" class="text-center">No hay alumnos registrados</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                        {% endif %}
+                    </td>
+                    <td>{{ alumno.nombre }}</td>
+                    <td>{{ alumno.apellido }}</td>
+                    <td>{{ alumno.edad }}</td>
+                    <td>{{ alumno.email }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'formulario:editar_alumno' alumno.id %}" class="btn btn-outline-warning" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'formulario:eliminar_alumno' alumno.id %}" class="btn btn-outline-danger" title="Eliminar">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            <a href="{% url 'formulario:lista_notas_alumno' alumno.id %}" class="btn btn-outline-info" title="Notas">
+                                <i class="bi bi-card-checklist"></i>
+                            </a>
+                            <a href="{% url 'formulario:asignar_materias' alumno.id %}" class="btn btn-outline-secondary" title="Materias">
+                                <i class="bi bi-book"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <div class="alert alert-info mb-0">
+                            No hay alumnos registrados
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}
-
 {% block extra_css %}
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-    .foto-alumno {
-        width: 50px;
-        height: 50px;
-        object-fit: cover;
-        border-radius: 50%;
-    }
-    .action-buttons {
-        display: flex;
-        gap: 5px;
-        flex-wrap: wrap;
-    }
+.table th {
+    white-space: nowrap;
+}
+
+.btn-group-sm>.btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.dropdown-toggle::after {
+    margin-left: 0.5em;
+}
 </style>
+{% endblock %}
+{% block extra_js %}
+<!-- Bootstrap Bundle con Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

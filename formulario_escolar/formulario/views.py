@@ -74,21 +74,39 @@ def lista_profesores(request):
     return render(request, 'formulario/lista_profesores.html', {'profesores': profesores})
 
 @login_required
-@permission_required('formulario.add_profesor')
 def registrar_profesor(request):
     if request.method == 'POST':
         form = ProfesorForm(request.POST)
         if form.is_valid():
-            try:
-                profesor = form.save()
-                messages.success(request, 'Profesor registrado exitosamente')
-                return redirect('formulario:lista_profesores')
-            except Exception as e:
-                messages.error(request, f'Error al registrar profesor: {str(e)}')
+            profesor = form.save()
+            messages.success(request, 'Profesor registrado exitosamente')
+            return redirect('formulario:lista_profesores')
     else:
         form = ProfesorForm()
-    
     return render(request, 'formulario/registrar_profesor.html', {'form': form})
+
+@login_required
+def editar_profesor(request, id):
+    profesor = get_object_or_404(Profesor, id=id)
+    if request.method == 'POST':
+        form = ProfesorForm(request.POST, instance=profesor)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profesor actualizado correctamente')
+            return redirect('formulario:lista_profesores')
+    else:
+        form = ProfesorForm(instance=profesor)
+    
+    return render(request, 'formulario/editar_profesor.html', {'form': form})
+
+@login_required
+@require_POST
+def eliminar_profesor(request, id):
+    profesor = get_object_or_404(Profesor, id=id)
+    profesor.delete()
+    messages.success(request, 'Profesor eliminado correctamente')
+    return redirect('formulario:lista_profesores')
+    
 
 # Vistas para Períodos
 @login_required
@@ -121,19 +139,21 @@ def lista_materias(request):
 
 @login_required
 def crear_materia(request):
+    profesores = Profesor.objects.all().order_by('user__last_name')
+    
     if request.method == 'POST':
         form = MateriaForm(request.POST)
         if form.is_valid():
-            try:
-                materia = form.save()
-                messages.success(request, 'Materia creada exitosamente')
-                return redirect('formulario:lista_materias')
-            except Exception as e:
-                messages.error(request, f'Error al crear materia: {str(e)}')
+            materia = form.save()
+            messages.success(request, 'Materia creada exitosamente')
+            return redirect('formulario:lista_materias')
     else:
         form = MateriaForm()
     
-    return render(request, 'formulario/crear_materia.html', {'form': form})
+    return render(request, 'formulario/crear_materia.html', {
+        'form': form,
+        'profesores': profesores
+    })
 
 @login_required
 def detalle_materia(request, materia_id):
@@ -174,7 +194,6 @@ def eliminar_materia(request, id):
 @login_required
 def asignar_materias(request, alumno_id):
     alumno = get_object_or_404(Alumno, pk=alumno_id)
-    materias_asignadas = Inscripcion.objects.filter(alumno=alumno).select_related('materia', 'periodo')
     
     if request.method == 'POST':
         form = AsignarMateriasForm(request.POST, alumno=alumno)
@@ -188,22 +207,15 @@ def asignar_materias(request, alumno_id):
                     materia=materia,
                     periodo=periodo
                 ) for materia in materias
-                if not Inscripcion.objects.filter(
-                    alumno=alumno,
-                    materia=materia,
-                    periodo=periodo
-                ).exists()
             ]
             
-            if inscripciones:
-                Inscripcion.objects.bulk_create(inscripciones)
-                messages.success(request, f'{len(inscripciones)} materias asignadas correctamente')
-            else:
-                messages.warning(request, 'Todas las materias seleccionadas ya estaban asignadas para este período')
-            
+            Inscripcion.objects.bulk_create(inscripciones)
+            messages.success(request, 'Materias asignadas correctamente')
             return redirect('formulario:asignar_materias', alumno_id=alumno.id)
     else:
         form = AsignarMateriasForm(alumno=alumno)
+    
+    materias_asignadas = Inscripcion.objects.filter(alumno=alumno).select_related('materia', 'periodo')
     
     return render(request, 'formulario/asignar_materias.html', {
         'form': form,
@@ -211,17 +223,6 @@ def asignar_materias(request, alumno_id):
         'materias_asignadas': materias_asignadas,
     })
 
-@login_required
-@require_POST
-def eliminar_inscripcion(request, inscripcion_id):
-    inscripcion = get_object_or_404(Inscripcion, pk=inscripcion_id)
-    alumno_id = inscripcion.alumno.id
-    try:
-        inscripcion.delete()
-        messages.success(request, 'Inscripción eliminada correctamente')
-    except Exception as e:
-        messages.error(request, f'Error al eliminar inscripción: {str(e)}')
-    return redirect('formulario:asignar_materias', alumno_id=alumno_id)
 
 @login_required
 def registrar_nota(request, inscripcion_id):
@@ -295,3 +296,33 @@ def login_view(request):
 def custom_logout(request):
     logout(request)
     return redirect('formulario:login_view')
+
+@login_required
+@require_POST
+def eliminar_inscripcion(request, inscripcion_id):
+    inscripcion = get_object_or_404(Inscripcion, pk=inscripcion_id)
+    alumno_id = inscripcion.alumno.id
+    try:
+        inscripcion.delete()
+        messages.success(request, 'Inscripción eliminada correctamente')
+    except Exception as e:
+        messages.error(request, f'Error al eliminar inscripción: {str(e)}')
+    return redirect('formulario:asignar_materias', alumno_id=alumno_id)
+
+def buscar_profesor(request):
+    query = request.GET.get('q', '')
+    
+    # Buscar por nombre o apellido (insensible a mayúsculas)
+    profesores = Profesor.objects.filter(
+        Q(user__first_name__icontains=query) | 
+        Q(user__last_name__icontains=query)
+    ).distinct()[:10]
+    
+    results = []
+    for profesor in profesores:
+        results.append({
+            'id': profesor.user.get_full_name(),  # Usamos el nombre completo como ID
+            'text': f"{profesor.user.get_full_name()} (C.I.: {profesor.cedula})"
+        })
+    
+    return JsonResponse({'results': results}, safe=False)
