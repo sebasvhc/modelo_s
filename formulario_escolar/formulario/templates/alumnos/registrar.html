@@ -1,173 +1,166 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Registrar Alumno</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .form-container {
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-        }
-        .form-title {
-            color: #0d6efd;
-            border-bottom: 2px solid #0d6efd;
-            padding-bottom: 10px;
-            margin-bottom: 25px;
-        }
-        .photo-preview {
-            width: 120px;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 10px;
-            border: 2px dashed #dee2e6;
-            display: none;
-            margin-bottom: 15px;
-        }
-        .form-control, .form-select {
-            border-radius: 5px;
-            padding: 10px;
-        }
-        .btn-primary {
-            background-color: #0d6efd;
-            border: none;
-            padding: 10px 20px;
-            font-weight: 500;
-        }
-        .btn-secondary {
-            padding: 10px 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container mt-5 mb-5">
-        <div class="form-container">
-            <h1 class="form-title mb-4">Registrar Nuevo Alumno</h1>
-            
-            {% if form.errors %}
-            <div class="alert alert-danger">
-                <strong>Errores:</strong>
-                {{ form.errors }}
-            </div>
-            {% endif %}
+{% extends 'base.html' %}
+{% load static %}
 
-            <form method="post" class="needs-validation" enctype="multipart/form-data" novalidate>
-                {% csrf_token %}
+{% block title %}Registrar Alumno{% endblock %}
 
-                {% if form.non_field_errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.non_field_errors %}
-                        {{ error }}
-                    {% endfor %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="form-container shadow-sm">
+                <h1 class="form-title text-center mb-4">Registrar Nuevo Alumno</h1>
+                
+                {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <strong><i class="bi bi-exclamation-triangle-fill me-2"></i>Errores en el formulario:</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <ul class="mt-2 mb-0">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li>{{ field|title }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
                 </div>
                 {% endif %}
-                
-                <div class="row">
-                    <!-- Columna izquierda -->
-                    <div class="col-md-6">
-                        <!-- Sección de foto -->
-                        <div class="mb-4 text-center">
-                            <img id="photoPreview" class="photo-preview" alt="Vista previa de la foto">
-                            <div class="mb-3">
-                                <label for="id_foto" class="form-label">Foto del Alumno</label>
-                                <input type="file" class="form-control" name="foto" id="id_foto" accept="image/*">
-                                <div class="form-text">Formatos aceptados: JPG, PNG (Tamaño máximo: 2MB)</div>
+
+                <form method="post" class="needs-validation" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+
+                    <div class="row g-4">
+                        <!-- Columna izquierda -->
+                        <div class="col-md-6">
+                            <!-- Foto -->
+                            <div class="text-center">
+                                <div class="photo-upload-container mb-3 p-3 rounded">
+                                    <!--
+                                    <img id="photoPreview" class="photo-preview img-thumbnail mb-2" 
+                                         src="{% static 'img/default-avatar.jpg' %}" 
+                                         alt="Vista previa de foto">
+                                    -->
+                                    <label for="id_foto" class="btn btn-sm btn-outline-primary w-100">
+                                        <i class="bi bi-cloud-arrow-up me-2"></i>Seleccionar Foto
+                                    </label>
+                                    <input type="file" class="d-none" name="foto" id="id_foto" accept="image/*" onchange="previewImage(event)">
+                                    <small class="text-muted d-block mt-1">Formatos: JPG, PNG (Máx. 2MB)</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Nombre -->
+                            <div class="form-group">
+                                <label for="id_nombre" class="form-label">Nombre(s)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control" name="nombre" id="id_nombre" required>
+                                </div>
+                                <div class="invalid-feedback">Por favor ingresa el nombre del alumno</div>
+                            </div>
+                            
+                            <!-- Apellido -->
+                            <div class="form-group">
+                                <label for="id_apellido" class="form-label">Apellidos</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                                    <input type="text" class="form-control" name="apellido" id="id_apellido" required>
+                                </div>
+                                <div class="invalid-feedback">Por favor ingresa los apellidos</div>
                             </div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label for="id_nombre" class="form-label">Nombre(s)</label>
-                            <input type="text" class="form-control" name="nombre" id="id_nombre" 
-                                   value="{{ form.nombre.value|default_if_none:'' }}" required>
-                            <div class="invalid-feedback">Por favor ingresa el nombre.</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="id_apellido" class="form-label">Apellidos</label>
-                            <input type="text" class="form-control" name="apellido" id="id_apellido" 
-                                   value="{{ form.apellido.value|default_if_none:'' }}" required>
-                            <div class="invalid-feedback">Por favor ingresa los apellidos.</div>
+                        <!-- Columna derecha -->
+                        <div class="col-md-6">
+                            <!-- Edad -->
+                            <div class="form-group">
+                                <label for="id_edad" class="form-label">Edad</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+                                    <input type="number" class="form-control" name="edad" id="id_edad" min="15" max="100" required>
+                                </div>
+                                <div class="invalid-feedback">La edad debe ser entre 16 y 60 años</div>
+                            </div>
+                            
+                            <!-- Email -->
+                            <div class="form-group">
+                                <label for="id_email" class="form-label">Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" class="form-control" name="email" id="id_email" required>
+                                </div>
+                                <div class="invalid-feedback">Por favor ingresa un email válido</div>
+                            </div>
+                            
+                            <!-- Teléfono -->
+                            <div class="form-group">
+                                <label for="id_telefono" class="form-label">Teléfono</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                    <input type="tel" class="form-control" name="telefono" id="id_telefono" required>
+                                </div>
+                                <div class="invalid-feedback">Por favor ingresa un teléfono válido</div>
+                            </div>
+
+                            <!-- Dirección -->
+                            <div class="form-group">
+                                <label for="id_direccion" class="form-label">Dirección</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-house"></i></span>
+                                    <textarea class="form-control" name="direccion" id="id_direccion" rows="2" required></textarea>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Columna derecha -->
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="id_edad" class="form-label">Edad</label>
-                            <input type="number" class="form-control" name="edad" id="id_edad" 
-                                   value="{{ form.edad.value|default_if_none:'' }}" min="15" max="100" required>
-                            <div class="invalid-feedback">La edad debe estar entre 15 y 100 años.</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="id_email" class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email" id="id_email" 
-                                   value="{{ form.email.value|default_if_none:'' }}" required>
-                            <div class="form-text">Ejemplo: usuario@dominio.com</div>
-                            <div class="invalid-feedback">Por favor ingresa un email válido.</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="id_telefono" class="form-label">Teléfono</label>
-                            <input type="tel" class="form-control" name="telefono" id="id_telefono" 
-                                   value="{{ form.telefono.value|default_if_none:'' }}" required>
-                            <div class="invalid-feedback">Por favor ingresa un teléfono válido.</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="id_direccion" class="form-label">Dirección</label>
-                            <textarea class="form-control" name="direccion" id="id_direccion" 
-                                      rows="3">{{ form.direccion.value|default_if_none:'' }}</textarea>
-                        </div>
+                    <div class="d-flex justify-content-between border-top pt-4 mt-3">
+                        <a href="{% url 'formulario:lista_alumnos' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-2"></i>Guardar Alumno
+                        </button>
                     </div>
-                </div>
-                
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                    <a href="{% url 'formulario:lista_alumnos' %}" class="btn btn-secondary me-md-2">Cancelar</a>
-                    <button type="submit" class="btn btn-primary">Guardar Alumno</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        // Vista previa de la foto
-        document.getElementById('id_foto').addEventListener('change', function(e) {
-            const preview = document.getElementById('photoPreview');
-            const file = e.target.files[0];
-            
-            if (file) {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                }
-                
-                reader.readAsDataURL(file);
-            } else {
-                preview.style.display = 'none';
-            }
-        });
+{% block styles %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<!-- Tu CSS personalizado -->
+<link rel="stylesheet" href="{% static 'css/formulario_registrar_alumno.css' %}">
+{% endblock %}
 
-        // Validación de formulario
-        (function () {
-            'use strict'
-            
-            const forms = document.querySelectorAll('.needs-validation')
-            
-            Array.from(forms).forEach(form => {
-                form.addEventListener('submit', event => {
-                    if (!form.checkValidity()) {
-                        event.preventDefault()
-                        event.stopPropagation()
-                    }
-                    
-                    form.classList.add('was-validated')
-                }, false)
-            })
-        })()
-    </script>
-</body>
-</html>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Vista previa mejorada de la foto
+    function previewImage(event) {
+    const preview = document.getElementById('photoPreview');
+    const file = event.target.files[0];
+    
+    if (file) {
+        if (!file.type.match('image.*')) {
+            alert('Solo se permiten imágenes (JPEG, PNG)');
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        }
+        
+        reader.readAsDataURL(file);
+    } else {
+        // Vuelve a la imagen predeterminada si no se selecciona archivo
+        preview.src = "{% static 'img/default-avatar.jpg' %}";
+    }
+}
+</script>
+{% endblock %}

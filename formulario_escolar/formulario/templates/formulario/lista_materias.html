@@ -8,8 +8,6 @@
     <thead>
         <tr>
             <th>Nombre</th>
-            <th>Código</th>
-            <th>Créditos</th>
             <th>Acciones</th>
         </tr>
     </thead>
@@ -17,18 +15,24 @@
         {% for materia in materias %}
         <tr>
             <td>{{ materia.nombre }}</td>
-            <td>{{ materia.codigo }}</td>
-            <td>{{ materia.creditos }}</td>
             <td>
-                <a href="#" class="btn btn-sm btn-warning">Editar</a>
-                <a href="#" class="btn btn-sm btn-danger">Eliminar</a>
+                <a href="{% url 'formulario:editar_materia' materia.id %}" class="btn btn-sm btn-warning">Editar</a>
+                
+                <!-- Botón Eliminar con confirmación simple (sin modal) -->
+                <form method="post" action="{% url 'formulario:eliminar_materia' materia.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta materia?')">Eliminar</button>
+                </form>
             </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="4">No hay materias registradas</td>
+            <td colspan="2">No hay materias registradas</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+<!-- Botón para agregar nueva materia -->
+<a href="{% url 'formulario:crear_materia' %}" class="btn btn-primary mt-3">Agregar Nueva Materia</a>
 {% endblock %}

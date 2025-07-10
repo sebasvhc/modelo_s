@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">{{ materia.nombre }}</h3>
+                <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#infoModal">
+                    <i class="fas fa-info-circle"></i> Ver información
+                </button>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <!-- Modal de Información -->
+            <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="infoModalLabel">Información Completa</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h5>Detalles de la Materia</h5>
+                                    <p><strong>Nombre:</strong> {{ materia.nombre }}</p>
+                                    <p><strong>Nota mínima:</strong> {{ materia.nota_minima_aprobatoria }}</p>
+                                    <p><strong>Descripción:</strong> {{ materia.descripcion|default:"No disponible" }}</p>
+                                </div>
+                                {% if materia.profesor %}
+                                <div class="col-md-6">
+                                    <h5>Profesor Asignado</h5>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="flex-shrink-0">
+                                            <i class="fas fa-user-tie fa-2x text-primary"></i>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6>{{ materia.profesor.user.get_full_name }}</h6>
+                                            <p class="mb-1"><small>Cédula: {{ materia.profesor.cedula }}</small></p>
+                                            <p class="mb-1"><small>Teléfono: {{ materia.profesor.telefono }}</small></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Estudiantes Inscritos</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Estudiante</th>
+                                    <th>Período</th>
+                                    <th>Promedio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inscripcion in inscripciones %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'formulario:lista_notas_alumno' inscripcion.alumno.id %}">
+                                            {{ inscripcion.alumno.nombre }} {{ inscripcion.alumno.apellido }}
+                                        </a>
+                                    </td>
+                                    <td>{{ inscripcion.periodo }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if inscripcion.aprobada %}success{% else %}warning{% endif %}">
+                                            {{ inscripcion.promedio|default:"0"|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No hay estudiantes inscritos</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    {% if materia.profesor %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Profesor Asignado</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-chalkboard-teacher fa-3x text-info"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5>{{ materia.profesor.user.get_full_name }}</h5>
+                                    <p class="mb-1"><strong>Cédula:</strong> {{ materia.profesor.cedula }}</p>
+                                    <p class="mb-1"><strong>Teléfono:</strong> {{ materia.profesor.telefono }}</p>
+                                    <p class="mb-1"><strong>Dirección:</strong> {{ materia.profesor.direccion }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Estadísticas</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Total estudiantes:</strong> {{ inscripciones.count }}</p>
+                            <p><strong>Aprobados:</strong> {{ inscripciones|length|default:0 }}</p>
+                            <p><strong>Reprobados:</strong> {{ inscripciones|length|default:0 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

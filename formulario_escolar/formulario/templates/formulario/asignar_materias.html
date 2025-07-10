@@ -1,95 +1,105 @@
-<!-- Agrega esto en el head -->
-<meta name="djdt-disable-template-source" content="true">
 {% extends 'base.html' %}
-{% block title %}Asignar Materias a {{ alumno.nombre }}{% endblock %}
+{% load static %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="card">
         <div class="card-header bg-primary text-white">
-            <h2 class="mb-0">Asignar Materias a {{ alumno.nombre }} {{ alumno.apellido }}</h2>
+            <h3>Asignar Materias a {{ alumno.nombre }} {{ alumno.apellido }}</h3>
         </div>
+        
         <div class="card-body">
-            {% if messages %}
-            <div class="mb-3">
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            <form method="post" id="asignacion-form">
+            <form method="post">
                 {% csrf_token %}
-                <!-- Sección de materias disponibles -->
-                <div class="mb-4">
-                    <h4>Materias Disponibles</h4>
-                    {% if materias_disponibles %}
-                    <div class="row row-cols-1 row-cols-md-3 g-4">
-                        {% for materia in materias_disponibles %}
-                        <div class="col">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="materias" value="{{ materia.id }}" id="materia_{{ materia.id }}">
-                                        <label class="form-check-label" for="materia_{{ materia.id }}">
-                                            {{ materia.nombre }} ({{ materia.codigo }})
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        {{ form.periodo.label_tag }}
+                        {{ form.periodo }}
+                        {% if form.periodo.errors %}
+                            <div class="text-danger">{{ form.periodo.errors }}</div>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <div class="alert alert-info">No hay materias disponibles</div>
-                    {% endif %}
                 </div>
-                <!-- Selector de ciclo escolar -->
-                <div class="mb-4">
-                    <label for="id_ciclo_escolar" class="form-label">Ciclo Escolar</label>
-                    <select class="form-select" id="id_ciclo_escolar" name="ciclo_escolar" required>
-                        <option value="">Seleccione un ciclo</option>
-                        <option value="2023-1">2023-1</option>
-                        <option value="2023-2">2023-2</option>
-                        <option value="2024-1">2024-1</option>
-                        <option value="2024-2">2024-2</option>
-                    </select>
+                
+                <h4 class="mb-3">Materias Disponibles</h4>
+                <div class="row">
+                    {% for materia in form.materias.field.queryset %}
+                    <div class="col-md-4 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="materias" value="{{ materia.id }}" 
+                                   id="materia_{{ materia.id }}">
+                            <label class="form-check-label" for="materia_{{ materia.id }}">
+                                {{ materia.nombre }}
+                                {% if materia.profesor %}
+                                <small class="text-muted d-block">Prof: {{ materia.profesor.user.get_short_name }}</small>
+                                {% endif %}
+                            </label>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <p class="text-muted">No hay materias disponibles para asignar</p>
+                    </div>
+                    {% endfor %}
                 </div>
-                <!-- Botón de submit -->
-                <button type="submit" class="btn btn-success" id="guardar-btn">
-                    Guardar Asignaciones
-                </button>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a href="{% url 'formulario:lista_alumnos' %}" class="btn btn-secondary me-md-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Asignar Materias</button>
+                </div>
             </form>
+            
+            <hr class="my-4">
+            
+            <h4>Materias Asignadas</h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Materia</th>
+                            <th>Período</th>
+                            <th>Profesor</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inscripcion in materias_asignadas %}
+                        <tr>
+                            <td>{{ inscripcion.materia.nombre }}</td>
+                            <td>{{ inscripcion.periodo }}</td>
+                            <td>
+                                {% if inscripcion.materia.profesor %}
+                                {{ inscripcion.materia.profesor.user.get_short_name }}
+                                {% else %}
+                                <span class="text-muted">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'formulario:registrar_nota' inscripcion.id %}" 
+                                   class="btn btn-sm btn-outline-success" title="Registrar nota">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form method="post" action="{% url 'formulario:eliminar_inscripcion' inscripcion.id %}" 
+                                      class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                            title="Eliminar asignación" onclick="return confirm('¿Está seguro?')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No hay materias asignadas</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('asignacion-form');
-    const guardarBtn = document.getElementById('guardar-btn');
-
-    form.addEventListener('submit', function(e) {
-        // Validar que se haya seleccionado al menos una materia
-        const materiasSeleccionadas = document.querySelectorAll('input[name="materias"]:checked').length;
-        const cicloSeleccionado = document.getElementById('id_ciclo_escolar').value;
-
-        if (!cicloSeleccionado) {
-            e.preventDefault();
-            alert('Por favor seleccione un ciclo escolar');
-            return false;
-        }
-
-        if (materiasSeleccionadas === 0) {
-            e.preventDefault();
-            alert('Por favor seleccione al menos una materia');
-            return false;
-        }
-
-        // Deshabilitar botón para evitar múltiples clics
-        guardarBtn.disabled = true;
-        guardarBtn.innerHTML = 'Procesando... <span class="spinner-border spinner-border-sm"></span>';
-    });
-});
-</script>
 {% endblock %}

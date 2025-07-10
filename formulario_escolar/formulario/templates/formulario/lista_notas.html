@@ -5,8 +5,20 @@
     <h2>Notas de {{ alumno.nombre }} {{ alumno.apellido }}</h2>
     {% for inscripcion in inscripciones %}
     <div class="card mb-4">
-        <div class="card-header">
-            <h5>{{ inscripcion.materia.nombre }} ({{ inscripcion.ciclo_escolar }})</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0">{{ inscripcion.materia.nombre }} ({{ inscripcion.ciclo_escolar }})</h5>
+                <!-- Estado de aprobación - Solo muestra si hay notas -->
+                {% if inscripcion.notas.all %}
+                <span class="badge {% if inscripcion.promedio >= 12 %}bg-success{% else %}bg-danger{% endif %}">
+                    {% if inscripcion.promedio >= 12 %}
+                        Aprobado (Promedio: {{ inscripcion.promedio|floatformat:1 }})
+                    {% else %}
+                        Reprobado (Promedio: {{ inscripcion.promedio|floatformat:1 }})
+                    {% endif %}
+                </span>
+                {% endif %}
+            </div>
             <a href="{% url 'formulario:registrar_nota' inscripcion.id %}" class="btn btn-sm btn-success">
                 Agregar Nota
             </a>
@@ -19,14 +31,16 @@
                         <th>Nota</th>
                         <th>Fecha</th>
                         <th>Comentario</th>
-                        <th>Acciones</th> <!-- Nueva columna -->
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for nota in inscripcion.notas.all %}
                     <tr>
                         <td>{{ nota.get_tipo_display }}</td>
-                        <td>{{ nota.valor }}</td>
+                        <td class="{% if nota.valor >= 12 %}text-success{% else %}text-danger{% endif %}">
+                            {{ nota.valor }}
+                        </td>
                         <td>{{ nota.fecha_registro|date:"d/m/Y" }}</td>
                         <td>{{ nota.comentario|default:"-" }}</td>
                         <td>

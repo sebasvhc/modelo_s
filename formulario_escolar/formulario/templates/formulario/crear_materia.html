@@ -1,135 +1,66 @@
 {% extends 'base.html' %}
-
-{% block title %}Crear Nueva Materia{% endblock %}
+{% load static %}
 
 {% block content %}
 <div class="container mt-4">
-    {% if messages %}
-    <div class="mb-4">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>Crear Nueva Materia</h3>
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h2 class="mb-0">Crear Nueva Materia</h2>
-                </div>
-                <div class="card-body">
-                    <form method="post" novalidate>
-                        {% csrf_token %}
-                        
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {% for error in form.non_field_errors %}
-                            <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-3">
-                            <label for="id_nombre" class="form-label">Nombre</label>
-                            <input type="text" 
-                                   class="form-control {% if form.nombre.errors %}is-invalid{% endif %}" 
-                                   id="id_nombre" 
-                                   name="nombre" 
-                                   value="{{ form.nombre.value|default:'' }}" 
-                                   required>
+        
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.nombre.label_tag }}
+                            {{ form.nombre }}
                             {% if form.nombre.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.nombre.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
+                                <div class="text-danger">{{ form.nombre.errors }}</div>
                             {% endif %}
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="id_codigo" class="form-label">Código</label>
-                                <input type="text" 
-                                       class="form-control {% if form.codigo.errors %}is-invalid{% endif %}" 
-                                       id="id_codigo" 
-                                       name="codigo" 
-                                       value="{{ form.codigo.value|default:'' }}" 
-                                       required>
-                                {% if form.codigo.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.codigo.errors %}
-                                    {{ error }}
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="id_creditos" class="form-label">Créditos</label>
-                                <input type="number" 
-                                       class="form-control {% if form.creditos.errors %}is-invalid{% endif %}" 
-                                       id="id_creditos" 
-                                       name="creditos" 
-                                       value="{{ form.creditos.value|default:'' }}" 
-                                       required>
-                                {% if form.creditos.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.creditos.errors %}
-                                    {{ error }}
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="id_profesor" class="form-label">Profesor</label>
-                            <select class="form-select {% if form.profesor.errors %}is-invalid{% endif %}" 
-                                    id="id_profesor" 
-                                    name="profesor">
-                                <option value="">Seleccione un profesor</option>
-                                {% for profesor in form.fields.profesor.queryset %}
-                                <option value="{{ profesor.id }}" 
-                                        {% if form.profesor.value == profesor.id %}selected{% endif %}>
-                                    {{ profesor.get_full_name }}
-                                </option>
-                                {% endfor %}
-                            </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.profesor.label_tag }}
+                            {{ form.profesor }}
                             {% if form.profesor.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.profesor.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
+                                <div class="text-danger">{{ form.profesor.errors }}</div>
                             {% endif %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="id_descripcion" class="form-label">Descripción</label>
-                            <textarea class="form-control {% if form.descripcion.errors %}is-invalid{% endif %}" 
-                                      id="id_descripcion" 
-                                      name="descripcion" 
-                                      rows="3">{{ form.descripcion.value|default:'' }}</textarea>
-                            {% if form.descripcion.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.descripcion.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="d-flex justify-content-between">
-                            <button type="submit" class="btn btn-primary">Guardar Materia</button>
-                            <a href="{% url 'formulario:lista_materias' %}" class="btn btn-secondary">Cancelar</a>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.descripcion.label_tag }}
+                    {{ form.descripcion }}
+                    {% if form.descripcion.errors %}
+                        <div class="text-danger">{{ form.descripcion.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'formulario:lista_materias' %}" class="btn btn-secondary me-md-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Guardar Materia</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nombreInput = document.getElementById('id_nombre');
+    
+    nombreInput.addEventListener('change', function() {
+        const nombre = this.value.toLowerCase();
+        if (nombre.includes('proyecto')) {
+            alert('Nota: Esta materia será configurada con nota mínima aprobatoria de 16 puntos');
+        }
+    });
+});
+</script>
 {% endblock %}
