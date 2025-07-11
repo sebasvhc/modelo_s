@@ -1,38 +1,16 @@
 from django.db import models
-from django.contrib.auth.models import User  
+from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import datetime
+from django.db.models import Avg
 
+def obtener_año_actual():
+    """Función para obtener el año actual (serializable para migraciones)"""
+    return datetime.datetime.now().year
 
-class Profesor(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profesor')
-    cedula = models.CharField(max_length=20, unique=True)
-    telefono = models.CharField(max_length=15)
-    direccion = models.TextField()
-    fecha_contratacion = models.DateField(auto_now_add=True)
-    
-    def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name}"
-
-class Periodo(models.Model):
-    PERIODO_CHOICES = [
-        ('I', 'Periodo I'),
-        ('II', 'Periodo II'),
-    ]
-    
-    nombre = models.CharField(max_length=2, choices=PERIODO_CHOICES)
-    año = models.PositiveIntegerField()
-    fecha_inicio = models.DateField()
-    fecha_fin = models.DateField()
-    
-    class Meta:
-        unique_together = ('nombre', 'año')
-        ordering = ['-año', 'nombre']
-    
-    def __str__(self):
-        return f"{self.get_nombre_display()} - {self.año}"
-
+# 1. Primero define Alumno
 class Alumno(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
@@ -50,6 +28,65 @@ class Alumno(models.Model):
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
 
+# 2. Luego define Profesor
+class Profesor(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profesor')
+    cedula = models.CharField(max_length=20, unique=True)
+    telefono = models.CharField(max_length=15)
+    direccion = models.TextField()
+    fecha_contratacion = models.DateField(auto_now_add=True)
+    
+    def __str__(self):
+        try:
+            return f"{self.user.first_name} {self.user.last_name}"
+        except (ObjectDoesNotExist, AttributeError):
+            return f"Profesor {self.cedula} (sin usuario)"
+    
+    @property
+    def nombre_completo(self):
+        try:
+            return f"{self.user.first_name} {self.user.last_name}"
+        except (ObjectDoesNotExist, AttributeError):
+            return "Nombre no disponible"
+
+# 3. Luego define Periodo
+class Periodo(models.Model):
+    PERIODO_CHOICES = [
+        ('I', 'Periodo I (Enero-Junio)'),
+        ('II', 'Periodo II (Julio-Diciembre)'),
+    ]
+    
+    nombre = models.CharField(max_length=2, choices=PERIODO_CHOICES, unique=True)
+    año_actual = models.PositiveIntegerField(
+        default=obtener_año_actual,  # Usamos la función definida arriba
+        verbose_name="Año"
+    )
+    
+    class Meta:
+        verbose_name = "Período"
+        verbose_name_plural = "Períodos"
+        ordering = ['-año_actual', 'nombre']
+    
+    def __str__(self):
+        return f"{self.get_nombre_display()} - {self.año_actual}"
+    
+    @property
+    def fecha_inicio(self):
+        return datetime.date(self.año_actual, 1, 1) if self.nombre == 'I' else datetime.date(self.año_actual, 7, 1)
+    
+    @property
+    def fecha_fin(self):
+        return datetime.date(self.año_actual, 6, 30) if self.nombre == 'I' else datetime.date(self.año_actual, 12, 15)
+    
+    @classmethod
+    def obtener_periodos_actuales(cls):
+        """Obtiene o crea los períodos del año actual"""
+        year = obtener_año_actual()  # Usamos la función auxiliar
+        periodo_i, _ = cls.objects.get_or_create(nombre='I', defaults={'año_actual': year})
+        periodo_ii, _ = cls.objects.get_or_create(nombre='II', defaults={'año_actual': year})
+        return [periodo_i, periodo_ii]
+
+# 4. Luego define Materia (que depende de Profesor)
 class Materia(models.Model):
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(blank=True, null=True)
@@ -67,13 +104,14 @@ class Materia(models.Model):
     
     def save(self, *args, **kwargs):
         # Si el nombre contiene "proyecto" (case insensitive), establecer nota mínima en 16
-        if 'proyecto' in self.nombre.lower():
+        if 'proyecto' or 'Proyecto' in self.nombre.lower():
             self.nota_minima_aprobatoria = 16
         super().save(*args, **kwargs)
     
     def __str__(self):
         return self.nombre
 
+# 5. Finalmente define Inscripcion (que depende de Alumno, Materia y Periodo)
 class Inscripcion(models.Model):
     alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
     materia = models.ForeignKey(Materia, on_delete=models.CASCADE)
@@ -88,18 +126,59 @@ class Inscripcion(models.Model):
     def __str__(self):
         return f"{self.alumno} en {self.materia} ({self.periodo})"
 
+    def calcular_promedio_general(self):
+        """
+        Calcula el promedio para materias regulares (nota mínima 12)
+        Retorna el promedio o 0 si no hay notas
+        """
+        from django.db.models import Avg
+        resultado = self.notas.aggregate(promedio=Avg('valor'))
+        return resultado['promedio'] if resultado['promedio'] is not None else 0
+
+    def calcular_promedio_proyecto(self):
+        """
+        Calcula el promedio para materias de proyecto (nota mínima 16)
+        Retorna el promedio o 0 si no hay notas
+        """
+        # Mismo cálculo pero con diferente lógica de aprobación
+        return self.calcular_promedio_general()  # El cálculo es igual, cambia el mínimo
+
+    def es_materia_proyecto(self):
+        """
+        Determina si esta inscripción es para una materia de proyecto
+        """
+        return 'proyecto' in self.materia.nombre.lower()
+
     @property
     def promedio(self):
-        notas = self.notas.all()
-        if notas.exists():
-            return sum(nota.valor for nota in notas) / notas.count()
-        return 0
-    
+        """
+        Propiedad que selecciona el cálculo adecuado según el tipo de materia
+        """
+        if self.es_materia_proyecto():
+            return self.calcular_promedio_proyecto()
+        return self.calcular_promedio_general()
+
+    @property
+    def nota_minima_aprobatoria(self):
+        """
+        Retorna la nota mínima requerida según el tipo de materia
+        """
+        return 16 if self.es_materia_proyecto() else 12
+
     @property
     def aprobada(self):
-        promedio = self.promedio
-        return promedio >= self.materia.nota_minima_aprobatoria if promedio else False
+        """
+        Determina si el alumno aprobó la materia según el tipo
+        """
+        return self.promedio >= self.nota_minima_aprobatoria if self.notas.exists() else False
 
+    def actualizar_estado(self):
+        """
+        Método para forzar la actualización del estado
+        """
+        self.save(update_fields=[])
+
+# 6. Define Nota (que depende de Inscripcion)
 class Nota(models.Model):
     TIPOS_EVALUACION = [
         ('P1', 'Examen'),
@@ -130,21 +209,3 @@ class Nota(models.Model):
     
     def __str__(self):
         return f"{self.inscripcion.alumno} - {self.inscripcion.materia}: {self.valor} ({self.get_tipo_display()})"
-
-
-
-def asignar_periodo_default(apps, schema_editor):
-    Periodo = apps.get_model('formulario', 'Periodo')
-    Inscripcion = apps.get_model('formulario', 'Inscripcion')
-    
-    # Crear un período por defecto si no existe
-    periodo, created = Periodo.objects.get_or_create(
-        nombre='I',
-        año=2025,
-        defaults={
-            'fecha_inicio': '2025-01-01',
-            'fecha_fin': '2025-06-30'
-        }
-    )
-    
-

@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="card">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h3>Listado de Profesores</h3>
+            <h3><i class="bi bi-people-fill"></i> Listado de Profesores</h3>
             <a href="{% url 'formulario:registrar_profesor' %}" class="btn btn-light">
-                <i class="fas fa-plus"></i> Nuevo Profesor
+                <i class="bi bi-plus-lg"></i> Nuevo Profesor
             </a>
         </div>
         
@@ -28,23 +29,27 @@
                             <td>{{ profesor.cedula }}</td>
                             <td>{{ profesor.telefono }}</td>
                             <td>
-                                <a href="{% url 'formulario:editar_profesor' profesor.id %}" 
-                                   class="btn btn-sm btn-warning" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form method="post" action="{% url 'formulario:eliminar_profesor' profesor.id %}" 
-                                      class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-danger" 
-                                            title="Eliminar" onclick="return confirm('¿Eliminar este profesor?')">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </form>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'formulario:editar_profesor' profesor.id %}" 
+                                       class="btn btn-outline-warning" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'formulario:eliminar_profesor' profesor.id %}" 
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger" 
+                                                title="Eliminar" onclick="return confirm('¿Eliminar este profesor?')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center">No hay profesores registrados</td>
+                            <td colspan="4" class="text-center">
+                                <i class="bi bi-exclamation-triangle"></i> No hay profesores registrados
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -5,15 +5,26 @@
 <div class="container mt-4">
     <h2>Registrar Nota</h2>
     <p class="lead">
-        Alumno: <strong>{{ alumno.nombre }} {{ alumno.apellido }}</strong><br>
-        Materia: <strong>{{ materia.nombre }}</strong>
+        Alumno: <strong>{{ inscripcion.alumno.nombre }} {{ inscripcion.alumno.apellido }}</strong><br>
+        Materia: <strong>{{ inscripcion.materia.nombre }}</strong>
+        {% if es_proyecto %}
+        <span class="badge bg-info ms-2">Proyecto (Mínimo 16)</span>
+        {% endif %}
     </p>
     
-    <form method="post">
+    <form method="post" class="mt-3">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Guardar Nota</button>
-        <a href="{% url 'formulario:lista_notas_alumno' alumno.id %}" class="btn btn-secondary">Cancelar</a>
+        
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Guardar Nota
+            </button>
+            <a href="{% url 'formulario:lista_notas_alumno' alumno_id=inscripcion.alumno.id %}" 
+               class="btn btn-secondary">
+                <i class="fas fa-times me-1"></i> Cancelar
+            </a>
+        </div>
     </form>
 </div>
 {% endblock %}

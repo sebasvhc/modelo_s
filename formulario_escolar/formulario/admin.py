@@ -9,13 +9,6 @@ class NotaInline(admin.TabularInline):
     model = Nota
     extra = 1
 
-@admin.register(Alumno)
-class AlumnoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'apellido', 'email', 'matricula', 'fecha_inscripcion')
-    search_fields = ('nombre', 'apellido', 'email', 'matricula')
-    list_filter = ('fecha_inscripcion',)
-    inlines = [InscripcionInline]
-
 @admin.register(Materia)
 class MateriaAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'profesor', 'nota_minima_aprobatoria')
@@ -43,6 +36,16 @@ class ProfesorAdmin(admin.ModelAdmin):
 
 @admin.register(Periodo)
 class PeriodoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'año', 'fecha_inicio', 'fecha_fin')
-    list_filter = ('año', 'nombre')
-    ordering = ('-año', 'nombre')
+    list_display = ('nombre', 'año_actual', 'fecha_inicio', 'fecha_fin')
+    list_filter = ('año_actual', 'nombre')
+    search_fields = ('nombre',)
+    ordering = ('-año_actual', 'nombre')
+    readonly_fields = ('fecha_inicio', 'fecha_fin')
+    
+    def fecha_inicio(self, obj):
+        return obj.fecha_inicio.strftime('%d/%m/%Y')
+    fecha_inicio.short_description = 'Fecha de Inicio'
+    
+    def fecha_fin(self, obj):
+        return obj.fecha_fin.strftime('%d/%m/%Y')
+    fecha_fin.short_description = 'Fecha de Fin'

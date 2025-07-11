@@ -70,24 +70,62 @@ def eliminar_alumno(request, id):
 # Vistas para Profesores
 @login_required
 def lista_profesores(request):
-    profesores = Profesor.objects.all().order_by('user__last_name', 'user__first_name')
-    return render(request, 'formulario/lista_profesores.html', {'profesores': profesores})
+    profesores = Profesor.objects.select_related('user').order_by('user__last_name', 'user__first_name')
+    return render(request, 'formulario/lista_profesores.html', {
+        'profesores': profesores,
+        'profesores_sin_usuario': Profesor.objects.filter(user__isnull=True).count()
+    })
 
 @login_required
 def registrar_profesor(request):
     if request.method == 'POST':
         form = ProfesorForm(request.POST)
         if form.is_valid():
-            profesor = form.save()
-            messages.success(request, 'Profesor registrado exitosamente')
-            return redirect('formulario:lista_profesores')
+            try:
+                profesor = form.save()
+                messages.success(request, 
+                    f'Profesor {profesor.nombre_completo} registrado exitosamente!',
+                    extra_tags='success'
+                )
+                return redirect('formulario:lista_profesores')
+            except Exception as e:
+                messages.error(request, 
+                    f'Error al registrar profesor: {str(e)}',
+                    extra_tags='danger'
+                )
+        else:
+            messages.error(request, 
+                'Por favor corrige los errores en el formulario',
+                extra_tags='warning'
+            )
     else:
         form = ProfesorForm()
-    return render(request, 'formulario/registrar_profesor.html', {'form': form})
+    
+    context = {
+        'form': form,
+        'titulo': 'Registrar Nuevo Profesor',
+        'active_tab': 'profesores'
+    }
+    return render(request, 'formulario/registrar_profesor.html', context)
 
 @login_required
 def editar_profesor(request, id):
     profesor = get_object_or_404(Profesor, id=id)
+    
+    if not hasattr(profesor, 'user'):
+        # Crear usuario si no existe
+        username = profesor.cedula
+        user = User.objects.create_user(
+            username=username,
+            password=username,
+            first_name="Nombre",
+            last_name="Apellido",
+            email=f"{username}@escuela.com"
+        )
+        profesor.user = user
+        profesor.save()
+        messages.warning(request, 'Se creó un usuario automático para este profesor. Por favor complete los datos correctamente.')
+    
     if request.method == 'POST':
         form = ProfesorForm(request.POST, instance=profesor)
         if form.is_valid():
@@ -97,7 +135,10 @@ def editar_profesor(request, id):
     else:
         form = ProfesorForm(instance=profesor)
     
-    return render(request, 'formulario/editar_profesor.html', {'form': form})
+    return render(request, 'formulario/editar_profesor.html', {
+        'form': form,
+        'titulo': 'Editar Profesor'
+    })
 
 @login_required
 @require_POST
@@ -194,39 +235,77 @@ def eliminar_materia(request, id):
 @login_required
 def asignar_materias(request, alumno_id):
     alumno = get_object_or_404(Alumno, pk=alumno_id)
+    periodos = Periodo.obtener_periodos_actuales()
     
     if request.method == 'POST':
-        form = AsignarMateriasForm(request.POST, alumno=alumno)
-        if form.is_valid():
-            periodo = form.cleaned_data['periodo']
-            materias = form.cleaned_data['materias']
-            
-            inscripciones = [
-                Inscripcion(
-                    alumno=alumno,
-                    materia=materia,
-                    periodo=periodo
-                ) for materia in materias
-            ]
-            
-            Inscripcion.objects.bulk_create(inscripciones)
-            messages.success(request, 'Materias asignadas correctamente')
+        # Manejo simplificado del período
+        periodo_id = request.POST.get('periodo')
+        try:
+            periodo = next(p for p in periodos if str(p.id) == periodo_id)
+        except (StopIteration, ValueError):
+            messages.error(request, "Seleccione un período válido")
             return redirect('formulario:asignar_materias', alumno_id=alumno.id)
-    else:
-        form = AsignarMateriasForm(alumno=alumno)
+        
+        # Procesar materias seleccionadas
+        materias_ids = request.POST.getlist('materias')
+        materias = Materia.objects.filter(id__in=materias_ids)
+        
+        # Crear inscripciones
+        for materia in materias:
+            Inscripcion.objects.get_or_create(
+                alumno=alumno,
+                materia=materia,
+                periodo=periodo
+            )
+        
+        messages.success(request, 'Materias asignadas correctamente')
+        return redirect('formulario:asignar_materias', alumno_id=alumno.id)
     
-    materias_asignadas = Inscripcion.objects.filter(alumno=alumno).select_related('materia', 'periodo')
+    # Obtener materias no asignadas en ningún período
+    materias_asignadas_ids = Inscripcion.objects.filter(
+        alumno=alumno
+    ).values_list('materia_id', flat=True)
+    
+    materias_disponibles = Materia.objects.exclude(
+        id__in=materias_asignadas_ids
+    ).order_by('nombre')
+    
+    materias_asignadas = Inscripcion.objects.filter(
+        alumno=alumno
+    ).select_related('materia', 'periodo')
     
     return render(request, 'formulario/asignar_materias.html', {
-        'form': form,
         'alumno': alumno,
+        'periodos': periodos,
+        'materias_disponibles': materias_disponibles,
         'materias_asignadas': materias_asignadas,
+        'periodo_actual': periodos[0]  # Periodo I por defecto
     })
 
 
 @login_required
+def lista_notas_alumno(request, alumno_id):
+    alumno = get_object_or_404(Alumno, pk=alumno_id)
+    inscripciones = Inscripcion.objects.filter(alumno=alumno).select_related('materia', 'periodo').prefetch_related('notas')
+    
+    # Preparamos datos adicionales para cada inscripción
+    for inscripcion in inscripciones:
+        inscripcion.datos_extra = {
+            'es_proyecto': inscripcion.es_materia_proyecto(),
+            'nota_minima': inscripcion.nota_minima_aprobatoria,
+            'estado_aprobacion': inscripcion.aprobada
+        }
+    
+    return render(request, 'formulario/lista_notas.html', {
+        'alumno': alumno,
+        'inscripciones': inscripciones
+    })
+
+@login_required
 def registrar_nota(request, inscripcion_id):
     inscripcion = get_object_or_404(Inscripcion, pk=inscripcion_id)
+    es_proyecto = inscripcion.es_materia_proyecto()
+    alumno = inscripcion.alumno
     
     if request.method == 'POST':
         form = NotaForm(request.POST)
@@ -234,6 +313,10 @@ def registrar_nota(request, inscripcion_id):
             nota = form.save(commit=False)
             nota.inscripcion = inscripcion
             nota.save()
+            
+            # Actualizar estado de aprobación
+            inscripcion.actualizar_estado()
+            
             messages.success(request, 'Nota registrada correctamente')
             return redirect('formulario:lista_notas_alumno', alumno_id=inscripcion.alumno.id)
     else:
@@ -242,18 +325,8 @@ def registrar_nota(request, inscripcion_id):
     return render(request, 'formulario/registrar_nota.html', {
         'form': form,
         'inscripcion': inscripcion,
-        'alumno': inscripcion.alumno,
-        'materia': inscripcion.materia
-    })
-
-@login_required
-def lista_notas_alumno(request, alumno_id):
-    alumno = get_object_or_404(Alumno, pk=alumno_id)
-    inscripciones = Inscripcion.objects.filter(alumno=alumno).select_related('materia', 'periodo').prefetch_related('notas')
-    
-    return render(request, 'formulario/lista_notas.html', {
-        'alumno': alumno,
-        'inscripciones': inscripciones
+        'es_proyecto': es_proyecto,
+        'nota_minima': 16 if es_proyecto else 12
     })
 
 @login_required

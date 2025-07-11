@@ -1,66 +1,99 @@
 {% extends 'base.html' %}
 {% load static %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2>Notas de {{ alumno.nombre }} {{ alumno.apellido }}</h2>
-    {% for inscripcion in inscripciones %}
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-                <h5 class="mb-0">{{ inscripcion.materia.nombre }} ({{ inscripcion.ciclo_escolar }})</h5>
-                <!-- Estado de aprobación - Solo muestra si hay notas -->
-                {% if inscripcion.notas.all %}
-                <span class="badge {% if inscripcion.promedio >= 12 %}bg-success{% else %}bg-danger{% endif %}">
-                    {% if inscripcion.promedio >= 12 %}
-                        Aprobado (Promedio: {{ inscripcion.promedio|floatformat:1 }})
-                    {% else %}
-                        Reprobado (Promedio: {{ inscripcion.promedio|floatformat:1 }})
-                    {% endif %}
-                </span>
-                {% endif %}
-            </div>
-            <a href="{% url 'formulario:registrar_nota' inscripcion.id %}" class="btn btn-sm btn-success">
-                Agregar Nota
-            </a>
-        </div>
-        <div class="card-body">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Tipo</th>
-                        <th>Nota</th>
-                        <th>Fecha</th>
-                        <th>Comentario</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for nota in inscripcion.notas.all %}
-                    <tr>
-                        <td>{{ nota.get_tipo_display }}</td>
-                        <td class="{% if nota.valor >= 12 %}text-success{% else %}text-danger{% endif %}">
-                            {{ nota.valor }}
-                        </td>
-                        <td>{{ nota.fecha_registro|date:"d/m/Y" }}</td>
-                        <td>{{ nota.comentario|default:"-" }}</td>
-                        <td>
-                            <form method="post" action="{% url 'formulario:eliminar_nota' nota.id %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar la nota de {{ nota.get_tipo_display }}?')">
-                                    Eliminar
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5">No hay notas registradas</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+  <h2 class="mb-4"><i class="bi bi-journal-bookmark"></i> Notas de {{ alumno.nombre }} {{ alumno.apellido }}</h2>
+
+  {% if not inscripciones %}
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> El alumno no tiene materias asignadas o no hay notas registradas.
+  </div>
+  {% endif %}
+
+  {% for inscripcion in inscripciones %}
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header {% if inscripcion.datos_extra.estado_aprobacion %}bg-success{% else %}bg-danger{% endif %} text-white d-flex justify-content-between align-items-center">
+      <span>
+        <i class="bi bi-book me-2"></i>
+        {{ inscripcion.materia.nombre }} - {{ inscripcion.periodo }}
+      </span>
+      <span class="badge bg-light text-dark">
+        {{ inscripcion.promedio|floatformat:2 }}/{{ inscripcion.datos_extra.nota_minima }}
+      </span>
     </div>
-    {% endfor %}
+
+    <div class="card-body">
+      <div class="d-flex justify-content-between mb-3">
+        <div>
+          <span class="badge bg-{% if inscripcion.datos_extra.estado_aprobacion %}success{% else %}danger{% endif %} fs-6">
+            {% if inscripcion.datos_extra.estado_aprobacion %}
+            <i class="bi bi-check-circle me-1"></i> Aprobado
+            {% else %}
+            <i class="bi bi-x-circle me-1"></i> No aprobado
+            {% endif %}
+          </span>
+
+          {% if inscripcion.datos_extra.es_proyecto %}
+          <span class="badge bg-info ms-2">
+            <i class="bi bi-kanban"></i> Materia de Proyecto
+          </span>
+          {% endif %}
+        </div>
+
+        <div>
+          <a href="{% url 'formulario:registrar_nota' inscripcion.id %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg"></i> Agregar Nota
+          </a>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th width="30%">Tipo de Evaluación</th>
+              <th width="20%">Nota</th>
+              <th width="30%">Fecha</th>
+              <th width="20%">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for nota in inscripcion.notas.all %}
+            <tr>
+              <td>{{ nota.get_tipo_display }}</td>
+              <td>
+                <span class="badge {% if nota.valor >= inscripcion.datos_extra.nota_minima %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                  {{ nota.valor }}
+                </span>
+              </td>
+              <td>{{ nota.fecha_registro|date:"d/m/Y" }}</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <a href="#" class="btn btn-outline-secondary" title="Editar">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <form method="post" action="{% url 'formulario:eliminar_nota' nota.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger" title="Eliminar" onclick="return confirm('¿Está seguro que desea eliminar esta nota?')">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted">
+                <i class="bi bi-exclamation-circle"></i> No hay notas registradas para esta materia
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 {% endblock %}

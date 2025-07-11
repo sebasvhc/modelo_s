@@ -1,93 +1,144 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card">
-        <div class="card-header bg-primary text-white">
-            <h3>Registrar Nuevo Profesor</h3>
-        </div>
-        
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.first_name.label_tag }}
-                            {{ form.first_name }}
-                            {% if form.first_name.errors %}
-                                <div class="text-danger">{{ form.first_name.errors }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.last_name.label_tag }}
-                            {{ form.last_name }}
-                            {% if form.last_name.errors %}
-                                <div class="text-danger">{{ form.last_name.errors }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="bi bi-person-plus me-2"></i>
+                        {{ titulo }}
+                    </h3>
                 </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.cedula.label_tag }}
-                            {{ form.cedula }}
-                            {% if form.cedula.errors %}
-                                <div class="text-danger">{{ form.cedula.errors }}</div>
-                            {% endif %}
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Sección de Datos Personales -->
+                        <div class="mb-4">
+                            <h5 class="text-primary mb-3">
+                                <i class="bi bi-person-lines-fill me-2"></i>
+                                Datos Personales
+                            </h5>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="id_first_name" class="form-label">Nombre</label>
+                                    {{ form.first_name }}
+                                    <div class="invalid-feedback">
+                                        Por favor ingrese el nombre.
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="id_last_name" class="form-label">Apellido</label>
+                                    {{ form.last_name }}
+                                    <div class="invalid-feedback">
+                                        Por favor ingrese el apellido.
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="id_cedula" class="form-label">Cédula</label>
+                                    {{ form.cedula }}
+                                    <div class="invalid-feedback">
+                                        {{ form.cedula.errors|striptags }}
+                                    </div>
+                                    <small class="text-muted">Formato: V-12345678</small>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="id_email" class="form-label">Correo Electrónico</label>
+                                    {{ form.email }}
+                                    <div class="invalid-feedback">
+                                        Por favor ingrese un email válido.
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.email.label_tag }}
-                            {{ form.email }}
-                            {% if form.email.errors %}
-                                <div class="text-danger">{{ form.email.errors }}</div>
-                            {% endif %}
+                        
+                        <!-- Sección de Contacto -->
+                        <div class="mb-4">
+                            <h5 class="text-primary mb-3">
+                                <i class="bi bi-telephone-fill me-2"></i>
+                                Información de Contacto
+                            </h5>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="id_telefono" class="form-label">Teléfono</label>
+                                    {{ form.telefono }}
+                                    <div class="invalid-feedback">
+                                        Por favor ingrese un teléfono válido.
+                                    </div>
+                                    <small class="text-muted">Ejemplo: 0412-1234567</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label for="id_direccion" class="form-label">Dirección</label>
+                                {{ form.direccion }}
+                                <div class="invalid-feedback">
+                                    Por favor ingrese una dirección.
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.telefono.label_tag }}
-                            {{ form.telefono }}
-                            {% if form.telefono.errors %}
-                                <div class="text-danger">{{ form.telefono.errors }}</div>
-                            {% endif %}
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'formulario:lista_profesores' %}" class="btn btn-secondary me-md-2">
+                                <i class="bi bi-arrow-left-circle me-1"></i>
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save-fill me-1"></i>
+                                Guardar Profesor
+                            </button>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.password.label_tag }}
-                            {{ form.password }}
-                            {% if form.password.errors %}
-                                <div class="text-danger">{{ form.password.errors }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
+                    </form>
                 </div>
-                
-                <div class="form-group mb-3">
-                    {{ form.direccion.label_tag }}
-                    {{ form.direccion }}
-                    {% if form.direccion.errors %}
-                        <div class="text-danger">{{ form.direccion.errors }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    <a href="{% url 'formulario:lista_profesores' %}" class="btn btn-secondary me-md-2">Cancelar</a>
-                    <button type="submit" class="btn btn-primary">Registrar Profesor</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .card {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .card-header {
+        border-radius: 0 !important;
+    }
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .invalid-feedback {
+        display: block;
+    }
+</style>
+
+<script>
+    // Validación del lado del cliente
+    (function () {
+        'use strict'
+        
+        // Seleccionar todos los formularios que necesitan validación
+        const forms = document.querySelectorAll('.needs-validation')
+        
+        // Validar cada campo al enviar el formulario
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
 {% endblock %}

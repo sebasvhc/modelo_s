@@ -3,130 +3,174 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="card">
+    <div class="card shadow">
         <div class="card-header bg-primary text-white">
-            <h3>Asignar Materias a {{ alumno.nombre }} {{ alumno.apellido }}</h3>
+            <h3 class="mb-0">
+                <i class="fas fa-book-open me-2"></i>
+                Asignar Materias a {{ alumno.nombre }} {{ alumno.apellido }}
+            </h3>
         </div>
         
         <div class="card-body">
             <form method="post">
                 {% csrf_token %}
                 
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        {{ form.periodo.label_tag }}
-                        {{ form.periodo }}
-                        {% if form.periodo.errors %}
-                            <div class="text-danger">{{ form.periodo.errors }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <h4 class="mb-3">Materias Disponibles</h4>
-                <div class="row">
-                    {% for materia in form.materias.field.queryset %}
-                    <div class="col-md-4 mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" 
-                                   name="materias" value="{{ materia.id }}" 
-                                   id="materia_{{ materia.id }}">
-                            <label class="form-check-label" for="materia_{{ materia.id }}">
-                                {{ materia.nombre }}
-                                {% if materia.profesor %}
-                                <small class="text-muted d-block">Prof: {{ materia.profesor.user.get_short_name }}</small>
-                                {% endif %}
-                            </label>
+                <!-- Selección de Período Simplificada -->
+                <div class="mb-4 p-3 border rounded bg-light">
+                    <h5 class="text-primary mb-3">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Seleccione el Período Académico
+                    </h5>
+                    
+                    <div class="row">
+                        {% for periodo in periodos %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card {% if forloop.first %}border-primary{% endif %}">
+                                <div class="card-body">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="periodo" id="periodo_{{ periodo.id }}" 
+                                               value="{{ periodo.id }}" {% if forloop.first %}checked{% endif %}>
+                                        <label class="form-check-label" for="periodo_{{ periodo.id }}">
+                                            <strong>{{ periodo.nombre }}</strong>
+                                            <div class="text-muted small mt-1">
+                                                {{ periodo.fecha_inicio|date:"d/m/Y" }} - {{ periodo.fecha_fin|date:"d/m/Y" }}
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% empty %}
-                    <div class="col-12">
-                        <p class="text-muted">No hay materias disponibles para asignar</p>
-                    </div>
-                    {% endfor %}
                 </div>
                 
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                    <a href="{% url 'formulario:lista_alumnos' %}" class="btn btn-secondary me-md-2">Cancelar</a>
-                    <button type="submit" class="btn btn-primary">Asignar Materias</button>
+                <!-- Materias Disponibles -->
+                <div class="mb-4 p-3 border rounded bg-light">
+                    <h5 class="text-primary mb-3">
+                        <i class="fas fa-book me-2"></i>
+                        Materias Disponibles
+                    </h5>
+                    
+                    {% if materias_disponibles %}
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                        {% for materia in materias_disponibles %}
+                        <div class="col">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               name="materias" value="{{ materia.id }}" 
+                                               id="materia_{{ materia.id }}">
+                                        <label class="form-check-label w-100" for="materia_{{ materia.id }}">
+                                            <h6 class="mb-1">{{ materia.nombre }}</h6>
+                                            {% if materia.profesor %}
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-chalkboard-teacher"></i> 
+                                                {{ materia.profesor.nombre_completo }}
+                                            </small>
+                                            {% endif %}
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-passport"></i> 
+                                                Nota mínima: {{ materia.nota_minima_aprobatoria }}
+                                            </small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay materias disponibles para asignar
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Botones de Acción -->
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'formulario:lista_alumnos' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                    <button type="submit" class="btn btn-primary" {% if not materias_disponibles %}disabled{% endif %}>
+                        <i class="fas fa-save me-1"></i> Guardar Asignaciones
+                    </button>
                 </div>
             </form>
             
+            <!-- Materias Asignadas -->
             <hr class="my-4">
             
-            <h4>Materias Asignadas</h4>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Materia</th>
-                            <th>Período</th>
-                            <th>Profesor</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for inscripcion in materias_asignadas %}
-                        <tr>
-                            <td>{{ inscripcion.materia.nombre }}</td>
-                            <td>{{ inscripcion.periodo }}</td>
-                            <td>
-                                {% if inscripcion.materia.profesor %}
-                                {{ inscripcion.materia.profesor.user.get_short_name }}
-                                {% else %}
-                                <span class="text-muted">Sin asignar</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{% url 'formulario:registrar_nota' inscripcion.id %}" 
-                                   class="btn btn-sm btn-outline-success" title="Registrar nota">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form method="post" action="{% url 'formulario:eliminar_inscripcion' inscripcion.id %}" 
-                                      class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" 
-                                            title="Eliminar asignación" onclick="return confirm('¿Está seguro?')">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center">No hay materias asignadas</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="p-3 border rounded bg-light">
+                <h5 class="text-primary mb-3">
+                    <i class="fas fa-list-check me-2"></i>
+                    Materias Asignadas
+                </h5>
+                
+                {% if materias_asignadas %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Materia</th>
+                                <th>Período</th>
+                                <th>Fechas</th>
+                                <th>Profesor</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inscripcion in materias_asignadas %}
+                            <tr>
+                                <td>{{ inscripcion.materia.nombre }}</td>
+                                <td>
+                                    <span class="badge bg-primary">
+                                        {{ inscripcion.periodo.get_nombre_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ inscripcion.periodo.fecha_inicio|date:"d/m/Y" }} - 
+                                        {{ inscripcion.periodo.fecha_fin|date:"d/m/Y" }}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if inscripcion.materia.profesor %}
+                                    {{ inscripcion.materia.profesor.nombre_completo }}
+                                    {% else %}
+                                    <span class="text-muted">Sin asignar</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'formulario:registrar_nota' inscripcion.id %}" 
+                                           class="btn btn-outline-success" title="Registrar nota">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'formulario:eliminar_inscripcion' inscripcion.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger" 
+                                                    title="Eliminar" onclick="return confirm('¿Eliminar esta asignación?')">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No hay materias asignadas
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-<!-- Mantén todo el contenido existente y solo modifica el bloque extra_js -->
-{% block extra_js %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<script>
-$(document).ready(function() {
-    // Configura Select2 para el período
-    $('#id_periodo').select2({
-        placeholder: "Seleccione un período",
-        allowClear: true,
-        width: '100%'
-    });
-    
-    // Ordenar períodos por año descendente
-    var options = $('#id_periodo option');
-    options.sort(function(a, b) {
-        var yearA = parseInt($(a).text().split('-')[1]);
-        var yearB = parseInt($(b).text().split('-')[1]);
-        return yearB - yearA;
-    });
-    $('#id_periodo').empty().append(options);
-});
-</script>
 {% endblock %}

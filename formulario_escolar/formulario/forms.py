@@ -6,44 +6,80 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 
 class ProfesorForm(forms.ModelForm):
-    first_name = forms.CharField(label="Nombre", required=True)
-    last_name = forms.CharField(label="Apellido", required=True)
-    email = forms.EmailField(required=True)
+    first_name = forms.CharField(
+        label="Nombre",
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        label="Apellido",
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
     
     class Meta:
         model = Profesor
         fields = ['cedula', 'telefono', 'direccion']
         widgets = {
-            'cedula': forms.TextInput(attrs={'placeholder': 'V-12345678'}),
-            'telefono': forms.TextInput(attrs={'placeholder': '0412-1234567'}),
-            'direccion': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Dirección completa...'}),
+            'cedula': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'V-12345678'
+            }),
+            'telefono': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0412-1234567'
+            }),
+            'direccion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Dirección completa...'
+            }),
         }
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.user:
+        if self.instance and hasattr(self.instance, 'user') and self.instance.user:
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial = self.instance.user.last_name
             self.fields['email'].initial = self.instance.user.email
     
+    def clean_cedula(self):
+        cedula = self.cleaned_data['cedula']
+        if Profesor.objects.filter(cedula=cedula).exclude(pk=self.instance.pk if self.instance else None).exists():
+            raise forms.ValidationError("Esta cédula ya está registrada")
+        return cedula
+    
     def save(self, commit=True):
-        if not self.instance.pk:  # Creando nuevo profesor
-            username = self.cleaned_data['cedula']
-            user = User.objects.create_user(
-                username=username,
-                email=self.cleaned_data['email'],
-                password=username,  # La cédula como contraseña inicial
-                first_name=self.cleaned_data['first_name'],
-                last_name=self.cleaned_data['last_name']
-            )
-            self.instance.user = user
-        else:  # Actualizando profesor existente
-            self.instance.user.first_name = self.cleaned_data['first_name']
-            self.instance.user.last_name = self.cleaned_data['last_name']
-            self.instance.user.email = self.cleaned_data['email']
-            self.instance.user.save()
+        profesor = super().save(commit=False)
+        user_data = {
+            'username': self.cleaned_data['cedula'],
+            'email': self.cleaned_data['email'],
+            'first_name': self.cleaned_data['first_name'],
+            'last_name': self.cleaned_data['last_name']
+        }
         
-        return super().save(commit)
+        if not hasattr(profesor, 'user') or not profesor.user:
+            # Crear nuevo usuario con contraseña igual a la cédula
+            user = User.objects.create_user(
+                **user_data,
+                password=self.cleaned_data['cedula']  # Usamos la cédula como contraseña
+            )
+            profesor.user = user
+        else:
+            # Actualizar usuario existente
+            user = profesor.user
+            for attr, value in user_data.items():
+                setattr(user, attr, value)
+            user.save()
+        
+        if commit:
+            profesor.save()
+        
+        return profesor
 
 class PeriodoForm(forms.ModelForm):
     class Meta:
@@ -153,7 +189,7 @@ class NotaForm(forms.ModelForm):
                 'class': 'form-control', 
                 'step': '0.01',
                 'min': '0',
-                'max': '100'
+                'max': '20'
             }),
             'comentario': forms.Textarea(attrs={
                 'class': 'form-control', 
@@ -165,14 +201,14 @@ class NotaForm(forms.ModelForm):
     def clean_valor(self):
         valor = self.cleaned_data['valor']
         if valor < 0 or valor > 100:
-            raise forms.ValidationError("La nota debe estar entre 0 y 100.")
+            raise forms.ValidationError("La nota debe estar entre 0 y 20.")
         return valor
 
 class AsignarMateriasForm(forms.Form):
     periodo = forms.ModelChoiceField(
-        queryset=Periodo.objects.filter(nombre__in=['I', 'II']).order_by('-año'),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        label="Período Académico"
+        queryset=Periodo.objects.none(),  # Se establecerá en la vista
+        widget=forms.HiddenInput(),  # Ahora usamos botones de radio en la plantilla
+        required=True
     )
     
     def __init__(self, *args, alumno=None, **kwargs):
@@ -185,6 +221,17 @@ class AsignarMateriasForm(forms.Form):
                 required=True,
                 label="Seleccione materias"
             )
+            
+            # Filtrar materias que el alumno no ha cursado aún
+            if 'periodo' in self.data:
+                try:
+                    periodo_id = int(self.data.get('periodo'))
+                    self.fields['materias'].queryset = Materia.objects.exclude(
+                        inscripcion__alumno=alumno,
+                        inscripcion__periodo_id=periodo_id
+                    )
+                except (ValueError, TypeError):
+                    pass
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True)
